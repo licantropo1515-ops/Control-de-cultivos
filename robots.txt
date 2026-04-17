@@ -1,0 +1,4 @@
+# robots.txt
+User-agent: *
+Allow: /
+Sitemap: https://registro-cultivo-v1.netlify.app/sitemap.xml

@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Cultivos</title>
+<meta name="description" content="Registra y controla el crecimiento de tus cultivos por etapas">
+<meta name="theme-color" content="#1b4332">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cultivos">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════ */
+:root {
+  --v1: #1b4332; --v2: #2d6a4f; --v3: #52b788; --v4: #d8f3dc;
+  --tierra: #7c5132; --tierra-l: #f5ebe0;
+  --amarillo: #f5a623; --rojo: #c0392b; --azul: #1565c0;
+  --lluvia: #2980b9;
+  --bg: #f0f5f0; --surface: #ffffff; --surface2: #f7fbf7;
+  --border: #d4e8d4; --text: #1a2e1a; --text2: #5a705a;
+  --shadow: 0 4px 24px rgba(27,67,50,0.12);
+  --radius: 14px;
+}
+[data-theme="dark"] {
+  --bg: #0f1a0f; --surface: #182018; --surface2: #1e2a1e;
+  --border: #2a3d2a; --text: #e8f5e8; --text2: #7a9a7a;
+  --v4: #1a3a2a; --tierra-l: #2a1f14;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+header {
+  background: linear-gradient(135deg, var(--v1) 0%, var(--v2) 100%);
+  color: white; padding: 16px; position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.header-row { display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-family: 'Playfair Display', serif; font-size: 22px; }
+header p { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+.header-btns { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  background: rgba(255,255,255,0.15); border: none; color: white;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  font-size: 17px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* CLIMA BANNER */
+.clima-banner {
+  background: rgba(0,0,0,0.2); border-radius: 10px;
+  padding: 8px 12px; margin-top: 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 13px;
+}
+.clima-banner .temp { font-size: 22px; font-weight: 700; }
+.clima-banner .lluvia-alerta {
+  background: #2980b9; border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-weight: 700; animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+.clima-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.clima-day {
+  flex-shrink: 0; background: rgba(255,255,255,0.12); border-radius: 8px;
+  padding: 5px 8px; text-align: center; font-size: 11px; min-width: 52px;
+}
+.clima-day .day-ico { font-size: 18px; }
+.clima-day.rain-day { background: rgba(41,128,185,0.35); }
+
+/* ═══════════════════════════════════════
+   TABS
+═══════════════════════════════════════ */
+.tabs-wrap {
+  background: var(--surface); border-bottom: 2px solid var(--border);
+  display: flex; align-items: center; overflow-x: auto;
+  padding: 0 8px; gap: 2px; top: 0; z-index: 40;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.cultivo-tab {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  padding: 12px 13px; border: none; background: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--text2); border-bottom: 3px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.cultivo-tab.active { color: var(--v1); border-bottom-color: var(--v3); }
+[data-theme="dark"] .cultivo-tab.active { color: var(--v3); }
+.cultivo-tab .cnt { background: var(--border); color: var(--text2); border-radius: 20px; padding: 1px 7px; font-size: 11px; }
+.cultivo-tab.active .cnt { background: var(--v3); color: white; }
+.btn-add-cultivo {
+  flex-shrink: 0; background: var(--v3); color: white; border: none;
+  border-radius: 20px; padding: 7px 13px; font-size: 12px; font-weight: 700;
+  cursor: pointer; margin-left: auto; white-space: nowrap; transition: all 0.2s;
+}
+.btn-add-cultivo:hover { background: var(--v2); }
+
+/* ═══════════════════════════════════════
+   PANELS
+═══════════════════════════════════════ */
+.panel { display: none; padding: 14px; animation: fadeIn 0.3s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* RESUMEN DASHBOARD */
+.resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.resumen-card {
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 14px; text-align: center;
+}
+.resumen-card .num { font-size: 28px; font-weight: 900; color: var(--v2); font-family: 'Playfair Display', serif; }
+[data-theme="dark"] .resumen-card .num { color: var(--v3); }
+.resumen-card .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.progreso-bar-wrap { margin-bottom: 14px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.progreso-bar-wrap h4 { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.progreso-bar { height: 10px; background: var(--border); border-radius: 20px; overflow: hidden; }
+.progreso-fill { height: 100%; background: linear-gradient(90deg, var(--v3), var(--v2)); border-radius: 20px; transition: width 0.6s ease; }
+.progreso-pct { font-size: 12px; color: var(--text2); margin-top: 4px; text-align: right; }
+
+/* CULTIVO HEADER */
+.cultivo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cultivo-header h2 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--v1); display: flex; align-items: center; gap: 8px; }
+[data-theme="dark"] .cultivo-header h2 { color: var(--v3); }
+.btn-del-cultivo { background: #fee2e2; color: var(--rojo); border: none; border-radius: 8px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* PROGRESS DOTS */
+.progress-wrap { overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; }
+.etapas-progress { display: flex; min-width: max-content; position: relative; padding: 6px 4px 2px; }
+.etapas-progress::before { content:''; position:absolute; top:22px; left:20px; right:20px; height:3px; background:var(--border); }
+.etapa-dot { display:flex; flex-direction:column; align-items:center; gap:5px; z-index:1; min-width:64px; cursor:pointer; }
+.etapa-dot .cir { width:34px;height:34px;border-radius:50%;background:var(--border);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid var(--surface);box-shadow:0 0 0 2px var(--border);transition:all 0.25s; }
+.etapa-dot.done .cir { background:var(--v3);color:white;box-shadow:0 0 0 2px var(--v3); }
+.etapa-dot.sel .cir { background:var(--v1);color:white;box-shadow:0 0 0 3px var(--v3);transform:scale(1.15); }
+.etapa-dot .dlbl { font-size:9px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase;max-width:58px;line-height:1.2; }
+.etapa-dot.done .dlbl { color:var(--v3); }
+.etapa-dot.sel .dlbl { color:var(--v1); }
+[data-theme="dark"] .etapa-dot.sel .dlbl { color:var(--v3); }
+
+/* FORM CARD */
+.form-card { background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px; }
+.form-card h3 { font-family:'Playfair Display',serif;color:var(--v1);font-size:15px;margin-bottom:12px; }
+[data-theme="dark"] .form-card h3 { color:var(--v3); }
+.campo { display:block;font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px; }
+.campo:first-of-type { margin-top:0; }
+input[type="date"],input[type="datetime-local"],input[type="number"],input[type="text"],select,textarea {
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;
+  font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);
+  color:var(--text);outline:none;transition:border 0.2s;
+}
+input:focus,select:focus,textarea:focus { border-color:var(--v3);box-shadow:0 0 0 3px rgba(82,183,136,0.15); }
+textarea { resize:vertical;min-height:65px; }
+.row2 { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+
+/* FOTO / CÁMARA */
+.foto-btns { display:flex;gap:8px;margin-top:6px; }
+.foto-btn {
+  flex:1;background:var(--surface);border:2px dashed var(--border);border-radius:9px;
+  padding:10px 6px;text-align:center;cursor:pointer;font-size:12px;color:var(--text2);
+  font-weight:600;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.foto-btn:hover { border-color:var(--v3);background:var(--v4); }
+.foto-btn input { display:none; }
+.foto-preview { width:70px;height:70px;border-radius:9px;object-fit:cover;border:2px solid var(--v3);display:none;flex-shrink:0; }
+
+/* CHECKS */
+.checks-row { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
+.check-item { display:flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:7px 12px;cursor:pointer;font-size:13px;color:var(--v1);font-weight:600;transition:all 0.2s; }
+.check-item:has(input:checked) { background:var(--v3);color:white;border-color:var(--v3); }
+.check-item input { display:none; }
+
+/* PLAGA */
+.plaga-row { display:flex;gap:8px;margin-top:8px; }
+.plaga-badge { background:#fee2e2;color:var(--rojo);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700; }
+
+/* BUTTONS */
+.btns-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.btn { padding:11px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px; }
+.btn:hover { opacity:0.87;transform:translateY(-1px); }
+.btn:active { transform:translateY(0); }
+.bg { background:var(--v2);color:white; }
+.ba { background:var(--azul);color:white; }
+.br { background:var(--rojo);color:white; }
+.bc { background:var(--border);color:var(--text2); }
+.bi { width:100%;margin-top:8px;background:var(--tierra);color:white; }
+.bex { width:100%;margin-top:6px;background:#1565c0;color:white; }
+
+/* RECORDATORIOS */
+.rec-box { background:#fff8e1;border:1.5px solid #ffe082;border-radius:var(--radius);padding:14px;margin-bottom:12px; }
+[data-theme="dark"] .rec-box { background:#2a2000;border-color:#554400; }
+.rec-box h3 { color:#e65100;font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px; }
+.rec-recurrente-row { display:flex;gap:8px;align-items:flex-end;margin-top:8px; }
+.rec-recurrente-row input,.rec-recurrente-row select { flex:1; }
+.btn-al { width:100%;margin-top:8px;background:#e65100;color:white; }
+.rec-lista { margin-top:10px;display:flex;flex-direction:column;gap:6px; }
+.rec-item { background:var(--surface);border-radius:8px;padding:8px 12px;font-size:12px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid #ffe082; }
+.rec-item button { background:none;border:none;color:#bbb;cursor:pointer;font-size:16px; }
+
+/* CLIMA WARNING en formulario */
+.rain-warning { background:#e3f2fd;border:1.5px solid #90caf9;border-radius:9px;padding:10px 12px;font-size:13px;color:#1565c0;font-weight:600;margin-top:8px;display:none; }
+[data-theme="dark"] .rain-warning { background:#0d2137;border-color:#1565c0;color:#90caf9; }
+
+/* TABLA */
+.tabla-titulo { font-family:'Playfair Display',serif;color:var(--v1);font-size:16px;margin:14px 0 8px; }
+[data-theme="dark"] .tabla-titulo { color:var(--v3); }
+.tabla-wrap { overflow-x:auto;border-radius:10px;border:1px solid var(--border); }
+table { width:100%;border-collapse:collapse;font-size:12px; }
+thead { background:var(--v1);color:white; }
+th { padding:10px 8px;text-align:center;font-weight:600; }
+td { padding:9px 7px;text-align:center;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text); }
+tr.hecho { background:#e8f5e9; }
+tr.pendiente { background:#fffde7; }
+[data-theme="dark"] tr.hecho { background:#0d2010; }
+[data-theme="dark"] tr.pendiente { background:#1a1600; }
+tr:hover { background:var(--v4) !important;cursor:pointer; }
+.sel-row { outline:2px solid var(--v3) !important;background:#d0f0da !important; }
+td img { width:44px;height:44px;border-radius:6px;object-fit:cover; }
+.badge-e { background:var(--v1);color:white;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:700; }
+.badge-plaga { background:#fee2e2;color:var(--rojo);border-radius:12px;padding:2px 6px;font-size:10px;font-weight:700; }
+.empty-msg { text-align:center;color:var(--text2);padding:30px;font-style:italic; }
+
+/* FILTROS */
+.filtros-row { display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
+.filtro-btn { padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s; }
+.filtro-btn.activo { background:var(--v3);color:white;border-color:var(--v3); }
+
+/* BUSQUEDA */
+.busqueda-wrap { position:relative;margin-bottom:10px; }
+.busqueda-wrap input { padding-left:34px; }
+.busqueda-wrap .ico { position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none; }
+
+/* SIN CULTIVOS */
+.sin-cultivos { text-align:center;padding:60px 20px;color:var(--text2); }
+.sin-cultivos .big { font-size:60px;margin-bottom:14px; }
+.sin-cultivos h2 { font-family:'Playfair Display',serif;color:var(--v1);font-size:20px;margin-bottom:8px; }
+[data-theme="dark"] .sin-cultivos h2 { color:var(--v3); }
+.sin-cultivos p { font-size:14px;margin-bottom:20px; }
+.sin-cultivos button { background:var(--v3);color:white;border:none;border-radius:30px;padding:13px 28px;font-size:15px;font-weight:700;cursor:pointer; }
+
+/* MODAL */
+.modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:16px; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;max-height:92vh;overflow-y:auto;animation:pop 0.35s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+.modal h2 { font-family:'Playfair Display',serif;color:var(--v1);font-size:20px;margin-bottom:16px; }
+[data-theme="dark"] .modal h2 { color:var(--v3); }
+.etapa-row { display:flex;gap:6px;align-items:center;margin-bottom:6px; }
+.etapa-row .eji { width:52px;text-align:center;font-size:18px;padding:8px 4px; }
+.etapa-row .bdel { background:#fee2e2;color:var(--rojo);border:none;border-radius:6px;width:32px;height:36px;cursor:pointer;font-size:18px;flex-shrink:0; }
+.btn-add-etapa { width:100%;background:var(--v4);border:1.5px dashed var(--v3);color:var(--v1);border-radius:8px;padding:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px; }
+.modal-btns { display:flex;gap:10px;margin-top:20px; }
+.modal-btns button { flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer; }
+.mok { background:var(--v2);color:white; }
+.mca { background:var(--border);color:var(--text2); }
+
+/* TOAST */
+#toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--v1);color:white;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:9999;transition:transform 0.4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap; }
+#toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ALERTA */
+.alerta-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9998;align-items:center;justify-content:center; }
+.alerta-ov.show { display:flex; }
+.alerta-box { background:var(--surface);border-radius:20px;padding:30px 24px;text-align:center;max-width:300px;width:90%;animation:pop 0.4s cubic-bezier(.34,1.56,.64,1); }
+.alerta-box .aico { font-size:50px; }
+.alerta-box h2 { font-family:'Playfair Display',serif;color:var(--v1);margin:10px 0 6px; }
+[data-theme="dark"] .alerta-box h2 { color:var(--v3); }
+.alerta-box p { color:var(--text2);font-size:14px; }
+.alerta-box button { margin-top:16px;background:var(--v2);color:white;border:none;border-radius:30px;padding:10px 30px;font-size:15px;font-weight:700;cursor:pointer; }
+
+/* UBICACION modal */
+.ubi-box { background:var(--v4);border:1.5px solid var(--v3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px; }
+[data-theme="dark"] .ubi-box { background:var(--v1); }
+
+@media print {
+  .tabs-wrap,.form-card,.rec-box,.btns-grid,.bi,.bex,.btn-del-cultivo,.modal-overlay,.filtros-row,.busqueda-wrap,header .clima-banner { display:none !important; }
+  .panel { display:block !important;padding:0; }
+  body { background:white; }
+  header { position:relative; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <h1>🌱 Control de Cultivos</h1>
+      <p id="header-sub">Cargando clima…</p>
+    </div>
+    <div class="header-btns">
+      <button class="icon-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
+      <button class="icon-btn" onclick="pedirUbicacion()" title="Actualizar clima">📍</button>
+    </div>
+  </div>
+  <div class="clima-banner" id="climaBanner" style="display:none"></div>
+</header>
+
+<div class="tabs-wrap" id="tabs">
+  <button class="btn-add-cultivo" onclick="abrirModal()">+ Nuevo cultivo</button>
+</div>
+
+<div id="contenido"></div>
+
+<!-- MODAL NUEVO CULTIVO -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>🌿 Nuevo cultivo</h2>
+    <label class="campo">Nombre del cultivo</label>
+    <input type="text" id="m-nombre" placeholder="Ej: Arroz, Maíz, Jitomate…">
+    <label class="campo" style="margin-top:12px">Emoji / Ícono</label>
+    <input type="text" id="m-emoji" maxlength="2" placeholder="🌾" style="width:70px;text-align:center;font-size:22px;">
+    <label class="campo" style="margin-top:14px">Etapas del cultivo</label>
+    <div id="etapas-lista"></div>
+    <button class="btn-add-etapa" onclick="addEtapaModal()">+ Agregar etapa</button>
+    <div class="modal-btns">
+      <button class="mca" onclick="cerrarModal()">Cancelar</button>
+      <button class="mok" onclick="crearCultivo()">Crear cultivo ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTA RECORDATORIO -->
+<div class="alerta-ov" id="alertaOv">
+  <div class="alerta-box">
+    <div class="aico" id="aIco">🌱</div>
+    <h2>¡Recordatorio!</h2>
+    <p id="aMsg">Es hora de atender tu cultivo.</p>
+    <button onclick="document.getElementById('alertaOv').classList.remove('show')">Entendido ✓</button>
+  </div>
+</div>
+
+<!-- MODAL CÁMARA -->
+<div class="modal-overlay" id="camaraModal">
+  <div class="modal" style="max-width:340px;text-align:center;padding:20px 16px">
+    <h2 style="margin-bottom:12px">📷 Tomar foto</h2>
+    <video id="camaraVideo" autoplay playsinline
+      style="width:100%;border-radius:12px;background:#111;max-height:300px;object-fit:cover"></video>
+    <canvas id="camaraCanvas" style="display:none"></canvas>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn bc" style="flex:1" onclick="cerrarCamara()">✕ Cancelar</button>
+      <button class="btn bg" style="flex:1" onclick="tomarFoto()">📸 Capturar</button>
+    </div>
+    <p id="camaraError" style="color:var(--rojo);font-size:12px;margin-top:8px;display:none"></p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════ */
+const ETAPAS_DEF = [
+  {emoji:'🌰',nombre:'SIEMBRA'},{emoji:'🌱',nombre:'NACIMIENTO'},
+  {emoji:'🪴',nombre:'CRECIMIENTO'},{emoji:'🌸',nombre:'FLORACIÓN'},
+  {emoji:'🫘',nombre:'FORMACIÓN'},{emoji:'🌾',nombre:'COSECHA'},
+];
+let cultivoActivo = null;
+let seleccionado = {}, fotoData = {}, filtroEtapa = {}, busqueda = {};
+let timers = [];
+let climaData = null;
+
+/* ════════════════════════════════════
+   STORAGE
+════════════════════════════════════ */
+const gc  = ()  => JSON.parse(localStorage.getItem('cv_l')||'[]');
+const sc  = a   => localStorage.setItem('cv_l', JSON.stringify(a));
+const gr  = id  => JSON.parse(localStorage.getItem('cv_r_'+id)||'[]');
+const sr  = (id,a) => localStorage.setItem('cv_r_'+id, JSON.stringify(a));
+const grc = id  => JSON.parse(localStorage.getItem('cv_rc_'+id)||'[]');
+const src = (id,a) => localStorage.setItem('cv_rc_'+id, JSON.stringify(a));
+
+/* ════════════════════════════════════
+   TEMA
+════════════════════════════════════ */
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('tema', t);
+}
+(function(){
+  const t = localStorage.getItem('tema') || 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+
+/* ════════════════════════════════════
+   CLIMA (Open-Meteo — gratuito, sin API key)
+════════════════════════════════════ */
+function pedirUbicacion() {
+  if (!navigator.geolocation) return;
+  toast('📍 Obteniendo ubicación…');
+  navigator.geolocation.getCurrentPosition(pos => {
+    fetchClima(pos.coords.latitude, pos.coords.longitude);
+  }, () => {
+    // fallback CDMX
+    fetchClima(19.4326, -99.1332);
+  });
+}
+
+async function fetchClima(lat, lon) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weathercode&daily=weathercode,precipitation_sum,temperature_2m_max&timezone=auto&forecast_days=5`;
+    const r = await fetch(url);
+    const d = await r.json();
+    climaData = d;
+    renderClima(d);
+    localStorage.setItem('clima_lat', lat);
+    localStorage.setItem('clima_lon', lon);
+  } catch(e) {
+    console.log('Clima no disponible');
+  }
+}
+
+function wmoIcon(code) {
+  if (code === 0) return '☀️';
+  if (code <= 3) return '🌤️';
+  if (code <= 48) return '☁️';
+  if (code <= 67) return '🌧️';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌦️';
+  return '⛈️';
+}
+function esLluvia(code) { return code >= 51; }
+
+function renderClima(d) {
+  const cur = d.current;
+  const daily = d.daily;
+  const tempAct = Math.round(cur.temperature_2m);
+  const lluvia = esLluvia(cur.weathercode);
+  const lluviaHoy = daily.precipitation_sum[0] > 0;
+
+  document.getElementById('header-sub').textContent =
+    `${wmoIcon(cur.weathercode)} ${tempAct}°C · ${d.timezone}`;
+
+  let diasHtml = '';
+  const dias = ['Hoy','Mañ','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  for (let i = 0; i < Math.min(5, daily.weathercode.length); i++) {
+    const rc = daily.weathercode[i];
+    const ll = daily.precipitation_sum[i] > 0;
+    const mx = Math.round(daily.temperature_2m_max[i]);
+    diasHtml += `<div class="clima-day ${ll?'rain-day':''}">
+      <div class="day-ico">${wmoIcon(rc)}</div>
+      <div>${dias[i]}</div>
+      <div style="font-weight:700">${mx}°</div>
+      ${ll?'<div style="font-size:9px;color:#90caf9">💧lluvia</div>':''}
+    </div>`;
+  }
+
+  const banner = document.getElementById('climaBanner');
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <div>
+      <div class="temp">${wmoIcon(cur.weathercode)} ${tempAct}°C</div>
+      <div style="font-size:11px;opacity:0.8">${lluviaHoy?'Lluvia hoy — no riegues':'Sin lluvia hoy'}</div>
+    </div>
+    ${lluviaHoy?'<span class="lluvia-alerta">💧 No riegues hoy</span>':''}
+    <div class="clima-days">${diasHtml}</div>
+  `;
+
+  // mostrar aviso en forms activos
+  document.querySelectorAll('.rain-warning').forEach(el => {
+    el.style.display = lluviaHoy ? 'block' : 'none';
+  });
+}
+
+// auto-cargar clima guardado
+(function(){
+  const lat = localStorage.getItem('clima_lat');
+  const lon = localStorage.getItem('clima_lon');
+  if (lat && lon) fetchClima(parseFloat(lat), parseFloat(lon));
+  else pedirUbicacion();
+})();
+
+/* ════════════════════════════════════
+   MODAL NUEVO CULTIVO
+════════════════════════════════════ */
+function abrirModal() {
+  document.getElementById('m-nombre').value = '';
+  document.getElementById('m-emoji').value = '🌿';
+  const lista = document.getElementById('etapas-lista');
+  lista.innerHTML = '';
+  ETAPAS_DEF.forEach(e => addEtapaModal(e.emoji, e.nombre));
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function cerrarModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+function addEtapaModal(em='', nm='') {
+  const lista = document.getElementById('etapas-lista');
+  const row = document.createElement('div'); row.className = 'etapa-row';
+  row.innerHTML = `<input class="eji" type="text" value="${em}" maxlength="2" placeholder="🌱">
+    <input type="text" value="${nm}" placeholder="Nombre de etapa" style="flex:1">
+    <button class="bdel" onclick="this.parentElement.remove()">×</button>`;
+  lista.appendChild(row);
+}
+function crearCultivo() {
+  const nombre = document.getElementById('m-nombre').value.trim();
+  const emoji  = document.getElementById('m-emoji').value.trim() || '🌿';
+  if (!nombre) return toast('⚠️ Escribe el nombre', '#e65100');
+  const rows = document.querySelectorAll('#etapas-lista .etapa-row');
+  const etapas = [];
+  rows.forEach(r => {
+    const ej = r.querySelectorAll('input')[0].value.trim() || '🌱';
+    const nm = r.querySelectorAll('input')[1].value.trim();
+    if (nm) etapas.push({emoji:ej, nombre:nm.toUpperCase()});
+  });
+  if (etapas.length < 2) return toast('⚠️ Al menos 2 etapas', '#e65100');
+  const id = 'c'+Date.now();
+  const cultivos = gc();
+  cultivos.push({id, nombre, emoji, etapas});
+  sc(cultivos);
+  seleccionado[id]=null; fotoData[id]=null;
+  filtroEtapa[id]='todos'; busqueda[id]='';
+  cultivoActivo = id;
+  cerrarModal();
+  renderApp();
+  toast('✅ Cultivo "'+nombre+'" creado');
+}
+
+/* ════════════════════════════════════
+   RENDER APP
+════════════════════════════════════ */
+function renderApp() {
+  const cultivos = gc();
+  renderTabs(cultivos);
+  const cont = document.getElementById('contenido');
+  if (!cultivos.length) {
+    cont.innerHTML = `<div class="sin-cultivos">
+      <div class="big">🌱</div>
+      <h2>Sin cultivos registrados</h2>
+      <p>Agrega tu primer cultivo para comenzar el seguimiento.</p>
+      <button onclick="abrirModal()">+ Agregar cultivo</button>
+    </div>`; return;
+  }
+  if (!cultivoActivo || !cultivos.find(c=>c.id===cultivoActivo))
+    cultivoActivo = cultivos[0].id;
+  cont.innerHTML = cultivos.map(c=>
+    `<div class="panel ${c.id===cultivoActivo?'active':''}" id="panel-${c.id}"></div>`
+  ).join('');
+  cultivos.forEach(c => renderPanel(c));
+}
+
+function renderTabs(cultivos) {
+  const tabs = document.getElementById('tabs');
+  const boton = tabs.querySelector('.btn-add-cultivo');
+  [...tabs.children].forEach(el=>{ if(!el.classList.contains('btn-add-cultivo')) el.remove(); });
+  cultivos.forEach(c=>{
+    const n = gr(c.id).length;
+    const btn = document.createElement('button');
+    btn.className = 'cultivo-tab'+(c.id===cultivoActivo?' active':'');
+    btn.innerHTML = `${c.emoji} ${c.nombre} <span class="cnt">${n}</span>`;
+    btn.onclick = ()=>{ cultivoActivo=c.id; renderApp(); };
+    tabs.insertBefore(btn, boton);
+  });
+}
+
+/* ════════════════════════════════════
+   RENDER PANEL
+════════════════════════════════════ */
+function renderPanel(c) {
+  const el = document.getElementById('panel-'+c.id);
+  if (!el) return;
+
+  const regs = gr(c.id);
+  const hechas = new Set(regs.filter(r=>r.estado==='Hecho').map(r=>r.etapa));
+  const sel = seleccionado[c.id];
+  const pct = c.etapas.length ? Math.round((hechas.size/c.etapas.length)*100) : 0;
+
+  // RESUMEN CARDS
+  const nHechas = regs.filter(r=>r.estado==='Hecho').length;
+  const nPlag   = regs.filter(r=>r.plaga&&r.plaga.trim()).length;
+  const nRiegoH = regs.filter(r=>r.riego).length;
+  const resumenHtml = `
+    <div class="resumen-grid">
+      <div class="resumen-card"><div class="num">${regs.length}</div><div class="lbl">Registros totales</div></div>
+      <div class="resumen-card"><div class="num">${nHechas}</div><div class="lbl">Etapas completadas</div></div>
+      <div class="resumen-card"><div class="num">${nRiegoH}</div><div class="lbl">Veces regado</div></div>
+      <div class="resumen-card"><div class="num" style="color:${nPlag>0?'var(--rojo)':'var(--v2)'}">${nPlag}</div><div class="lbl">Registros c/plaga</div></div>
+    </div>
+    <div class="progreso-bar-wrap">
+      <h4>Progreso del cultivo</h4>
+      <div class="progreso-bar"><div class="progreso-fill" style="width:${pct}%"></div></div>
+      <div class="progreso-pct">${pct}% completado (${hechas.size}/${c.etapas.length} etapas)</div>
+    </div>`;
+
+  // PROGRESS DOTS
+  const dotsHtml = c.etapas.map(e=>{
+    const h=hechas.has(e.nombre), a=sel&&sel.etapa===e.nombre;
+    return `<div class="etapa-dot ${h?'done':''} ${a?'sel':''}" onclick="selEtapa('${c.id}','${e.nombre}')">
+      <div class="cir">${e.emoji}</div><div class="dlbl">${e.nombre}</div>
+    </div>`;
+  }).join('');
+
+  // OPCIONES ETAPA
+  const optsE = c.etapas.map(e=>
+    `<option value="${e.nombre}" ${sel&&sel.etapa===e.nombre?'selected':''}>${e.emoji} ${e.nombre}</option>`
+  ).join('');
+
+  // LLUVIA WARNING
+  const lluviaHoy = climaData && climaData.daily && climaData.daily.precipitation_sum[0] > 0;
+
+  // RECORDATORIOS
+  const recs = grc(c.id);
+  const emjR = {riego:'💧',abono:'🌿',revision:'🔍'};
+  const recsHtml = recs.map(r=>{
+    const f = r.recurrente
+      ? `Cada ${r.intervalo} día(s) — ${r.tipo}`
+      : new Date(r.fecha).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'});
+    return `<div class="rec-item">
+      <span>${emjR[r.tipo]||'⏰'} ${f}</span>
+      <button onclick="cancelarRec('${c.id}',${r.id})">✕</button>
+    </div>`;
+  }).join('');
+
+  // FILTROS
+  const fe = filtroEtapa[c.id]||'todos';
+  const etapasFiltro = ['todos',...c.etapas.map(e=>e.nombre)];
+  const filtrosHtml = etapasFiltro.map(e=>
+    `<button class="filtro-btn ${fe===e?'activo':''}" onclick="setFiltro('${c.id}','${e}')">${e==='todos'?'Todas':e}</button>`
+  ).join('');
+
+  // TABLA FILTRADA
+  const bq = (busqueda[c.id]||'').toLowerCase();
+  let regsFilt = regs;
+  if (fe !== 'todos') regsFilt = regsFilt.filter(r=>r.etapa===fe);
+  if (bq) regsFilt = regsFilt.filter(r=>
+    (r.etapa||'').toLowerCase().includes(bq)||
+    (r.obs||'').toLowerCase().includes(bq)||
+    (r.plaga||'').toLowerCase().includes(bq)||
+    (r.fecha||'').includes(bq)
+  );
+
+  const tablaHtml = regsFilt.length===0
+    ? '<p class="empty-msg">Sin registros que mostrar.</p>'
+    : `<table>
+        <thead><tr><th>#</th><th>Etapa</th><th>Fecha</th><th>Est.</th><th>°C</th><th>💧</th><th>🌿</th><th>Plaga</th><th>Foto</th><th>Observaciones</th></tr></thead>
+        <tbody>${regsFilt.map(d=>{
+          const cls=d.estado==='Hecho'?'hecho':'pendiente';
+          const sc2=sel&&sel.id===d.id?'sel-row':'';
+          const ft=d.foto?`<img src="${d.foto}">`:'—';
+          const pl=d.plaga?`<span class="badge-plaga">⚠️ ${d.plaga}</span>`:'—';
+          return `<tr class="${cls} ${sc2}" onclick="selFila('${c.id}',${d.id})">
+            <td>${d.id}</td>
+            <td><span class="badge-e">${d.etapa}</span></td>
+            <td>${d.fecha}</td>
+            <td>${d.estado==='Hecho'?'✅':'⏳'}</td>
+            <td>${d.temp||'—'}</td>
+            <td>${d.riego?'✔':'—'}</td>
+            <td>${d.abono?'✔':'—'}</td>
+            <td>${pl}</td>
+            <td>${ft}</td>
+            <td style="text-align:left;max-width:120px">${d.obs||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+  el.innerHTML = `
+    <div class="cultivo-header">
+      <h2>${c.emoji} ${c.nombre}</h2>
+      <button class="btn-del-cultivo" onclick="eliminarCultivo('${c.id}')">🗑 Eliminar</button>
+    </div>
+
+    ${resumenHtml}
+
+    <div class="progress-wrap"><div class="etapas-progress">${dotsHtml}</div></div>
+
+    <div class="form-card">
+      <h3>📋 Registrar etapa</h3>
+      <label class="campo">Etapa</label>
+      <select id="etapa-${c.id}">${optsE}</select>
+
+      <div class="row2">
+        <div>
+          <label class="campo">Fecha</label>
+          <input type="date" id="fecha-${c.id}" value="${sel?sel.fecha:''}">
+        </div>
+        <div>
+          <label class="campo">Temperatura °C</label>
+          <input type="number" id="temp-${c.id}" placeholder="Ej: 24" value="${sel?sel.temp||'':''}" min="-20" max="60">
+        </div>
+      </div>
+
+      <label class="campo">Estado</label>
+      <select id="estado-${c.id}">
+        <option value="Pendiente" ${sel&&sel.estado==='Pendiente'?'selected':''}>⏳ Pendiente</option>
+        <option value="Hecho"     ${sel&&sel.estado==='Hecho'    ?'selected':''}>✅ Hecho</option>
+      </select>
+
+      <label class="campo">Foto / Cámara</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <div style="flex:1;display:flex;gap:8px">
+          <label class="foto-btn">
+            📁 Galería
+            <input type="file" id="foto-${c.id}" accept="image/*" onchange="prevFoto('${c.id}',this)">
+          </label>
+          <button type="button" class="foto-btn" onclick="abrirCamara('${c.id}')">📷 Cámara</button>
+        </div>
+        <img id="preview-${c.id}" class="foto-preview"
+             src="${sel&&sel.foto?sel.foto:''}"
+             style="display:${sel&&sel.foto?'block':'none'}">
+      </div>
+
+      <label class="campo">Observaciones</label>
+      <textarea id="obs-${c.id}" placeholder="Describe el estado del cultivo…">${sel?sel.obs:''}</textarea>
+
+      <label class="campo">Plaga / Enfermedad detectada</label>
+      <input type="text" id="plaga-${c.id}" placeholder="Ej: Mosca blanca, pulgón… (dejar vacío si no hay)" value="${sel?sel.plaga||'':''}" style="border-color:${sel&&sel.plaga?'var(--rojo)':'var(--border)'}">
+
+      <label class="campo">Actividades realizadas</label>
+      <div class="checks-row">
+        <label class="check-item"><input type="checkbox" id="riego-${c.id}" ${sel&&sel.riego?'checked':''}> 💧 Regué</label>
+        <label class="check-item"><input type="checkbox" id="abono-${c.id}" ${sel&&sel.abono?'checked':''}> 🌿 Aboné</label>
+      </div>
+
+      <div class="rain-warning" id="rainW-${c.id}" style="display:${lluviaHoy?'block':'none'}">
+        💧 <strong>Se pronostica lluvia hoy</strong> — considera no regar para ahorrar agua.
+      </div>
+    </div>
+
+    <div class="btns-grid">
+      <button class="btn bg" onclick="guardar('${c.id}')">💾 Guardar</button>
+      <button class="btn ba" onclick="actualizar('${c.id}')">✏️ Actualizar</button>
+      <button class="btn br" onclick="borrar('${c.id}')">🗑 Borrar</button>
+      <button class="btn bc" onclick="cancelar('${c.id}')">✕ Cancelar</button>
+    </div>
+    <button class="btn bi" onclick="imprimir('${c.id}')">🖨️ Imprimir registro</button>
+    <button class="btn bex" onclick="exportarCSV('${c.id}')">📊 Exportar a CSV / Excel</button>
+
+    <div class="rec-box">
+      <h3>🔔 Recordatorios</h3>
+      <label class="campo">Tipo</label>
+      <select id="tipoRec-${c.id}">
+        <option value="riego">💧 Riego</option>
+        <option value="abono">🌿 Abono</option>
+        <option value="revision">🔍 Revisión</option>
+      </select>
+
+      <label class="campo">Recordatorio único — Fecha y hora</label>
+      <input type="datetime-local" id="recFecha-${c.id}">
+      <button class="btn btn-al" onclick="programarAlarma('${c.id}',false)">⏰ Programar alarma única</button>
+
+      <label class="campo" style="margin-top:10px">Recordatorio recurrente — cada cuántos días</label>
+      <div class="rec-recurrente-row">
+        <input type="number" id="recInt-${c.id}" min="1" max="30" value="3" placeholder="Días">
+        <button class="btn btn-al" style="flex:1" onclick="programarAlarma('${c.id}',true)">🔁 Programar recurrente</button>
+      </div>
+
+      <div class="rec-lista">${recsHtml}</div>
+    </div>
+
+    <div class="tabla-titulo">📊 Historial de etapas</div>
+    <!-- Buscador eliminado -->
+  <div class="filtros-row">${filtrosHtml}</div>
+    <div class="tabla-wrap">${tablaHtml}</div>
+  
+  `;
+
+  if (fotoData[c.id]) {
+    const img = document.getElementById('preview-'+c.id);
+    if (img) { img.src=fotoData[c.id]; img.style.display='block'; }
+  }
+}
+
+/* ════════════════════════════════════
+   FOTO / CÁMARA
+════════════════════════════════════ */
+function prevFoto(cid, inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    fotoData[cid] = e.target.result;
+    const img = document.getElementById('preview-'+cid);
+    if (img) { img.src=fotoData[cid]; img.style.display='block'; }
+  };
+  r.readAsDataURL(file);
+}
+
+/* ════════════════════════════════════
+   CRUD
+════════════════════════════════════ */
+function guardar(cid) {
+  const fecha = document.getElementById('fecha-'+cid).value;
+  if (!fecha) return toast('⚠️ Selecciona una fecha', '#e65100');
+  const arr = gr(cid);
+  const id = arr.length ? Math.max(...arr.map(d=>d.id))+1 : 1;
+  arr.push({
+    id, fecha,
+    etapa:  document.getElementById('etapa-' +cid).value,
+    estado: document.getElementById('estado-'+cid).value,
+    temp:   document.getElementById('temp-'  +cid).value,
+    obs:    document.getElementById('obs-'   +cid).value,
+    plaga:  document.getElementById('plaga-' +cid).value.trim(),
+    foto:   fotoData[cid]||null,
+    riego:  document.getElementById('riego-' +cid).checked,
+    abono:  document.getElementById('abono-' +cid).checked,
+  });
+  sr(cid, arr); fotoData[cid]=null; seleccionado[cid]=null;
+  toast('✅ Registro guardado'); renderApp();
+}
+
+function actualizar(cid) {
+  if (!seleccionado[cid]) return toast('⚠️ Selecciona un registro', '#e65100');
+  const arr = gr(cid);
+  const idx = arr.findIndex(d=>d.id===seleccionado[cid].id); if (idx===-1) return;
+  arr[idx] = { ...arr[idx],
+    etapa:  document.getElementById('etapa-' +cid).value,
+    fecha:  document.getElementById('fecha-' +cid).value,
+    estado: document.getElementById('estado-'+cid).value,
+    temp:   document.getElementById('temp-'  +cid).value,
+    obs:    document.getElementById('obs-'   +cid).value,
+    plaga:  document.getElementById('plaga-' +cid).value.trim(),
+    foto:   fotoData[cid]||arr[idx].foto,
+    riego:  document.getElementById('riego-' +cid).checked,
+    abono:  document.getElementById('abono-' +cid).checked,
+  };
+  sr(cid, arr); fotoData[cid]=null; seleccionado[cid]=null;
+  toast('✏️ Registro actualizado'); renderApp();
+}
+
+function borrar(cid) {
+  if (!seleccionado[cid]) return toast('⚠️ Selecciona un registro', '#e65100');
+  if (!confirm('¿Borrar este registro?')) return;
+  sr(cid, gr(cid).filter(d=>d.id!==seleccionado[cid].id));
+  seleccionado[cid]=null; fotoData[cid]=null;
+  toast('🗑 Eliminado', '#c0392b'); renderApp();
+}
+
+function cancelar(cid) {
+  seleccionado[cid]=null; fotoData[cid]=null;
+  renderPanel(gc().find(c=>c.id===cid));
+}
+
+/* ════════════════════════════════════
+   SELECCIÓN
+════════════════════════════════════ */
+function selFila(cid, id) {
+  seleccionado[cid] = gr(cid).find(r=>r.id===id);
+  fotoData[cid] = seleccionado[cid].foto||null;
+  renderPanel(gc().find(c=>c.id===cid));
+  toast('📝 Cargado — edita y actualiza', '#1565c0');
+}
+function selEtapa(cid, etapa) {
+  const s = document.getElementById('etapa-'+cid); if (s) s.value=etapa;
+}
+
+/* ════════════════════════════════════
+   FILTROS / BÚSQUEDA
+════════════════════════════════════ */
+function setFiltro(cid, etapa) {
+  filtroEtapa[cid]=etapa;
+  renderPanel(gc().find(c=>c.id===cid));
+}
+
+  /*funcion buscar wliminado*/
+
+/* ════════════════════════════════════
+   ELIMINAR CULTIVO
+════════════════════════════════════ */
+function eliminarCultivo(cid) {
+  const c = gc().find(x=>x.id===cid);
+  if (!confirm('¿Eliminar "'+c.nombre+'" y todos sus datos?')) return;
+  localStorage.removeItem('cv_r_'+cid);
+  localStorage.removeItem('cv_rc_'+cid);
+  const nuevos = gc().filter(x=>x.id!==cid);
+  sc(nuevos);
+  cultivoActivo = nuevos.length ? nuevos[0].id : null;
+  toast('🗑 Cultivo eliminado', '#c0392b'); renderApp();
+}
+
+/* ════════════════════════════════════
+   RECORDATORIOS
+════════════════════════════════════ */
+function programarAlarma(cid, recurrente) {
+  const tipo = document.getElementById('tipoRec-'+cid).value;
+  const msgs = {riego:'Es hora de regar tu cultivo',abono:'Es hora de abonar tu cultivo',revision:'Revisa el estado de tu cultivo'};
+  const emjs = {riego:'💧',abono:'🌿',revision:'🔍'};
+
+  if (recurrente) {
+    const dias = parseInt(document.getElementById('recInt-'+cid).value)||3;
+    const recs = grc(cid); const id = Date.now();
+    recs.push({id, tipo, recurrente:true, intervalo:dias});
+    src(cid, recs);
+    // disparar en ciclos
+    function ciclo() {
+      document.getElementById('aIco').textContent = emjs[tipo];
+      document.getElementById('aMsg').textContent  = msgs[tipo];
+      document.getElementById('alertaOv').classList.add('show');
+    }
+    const t = setInterval(ciclo, dias*24*60*60*1000);
+    timers.push({id, t, interval:true});
+    renderPanel(gc().find(c=>c.id===cid));
+    toast('🔁 Recurrente: cada '+dias+' día(s) — '+emjs[tipo]);
+  } else {
+    const fechaStr = document.getElementById('recFecha-'+cid).value;
+    if (!fechaStr) return toast('⚠️ Selecciona fecha y hora','#e65100');
+    const diff = new Date(fechaStr)-new Date();
+    if (diff<=0) return toast('⚠️ La fecha ya pasó','#c0392b');
+    const recs = grc(cid); const id = Date.now();
+    recs.push({id, tipo, fecha:fechaStr, recurrente:false});
+    src(cid, recs);
+    const t = setTimeout(()=>{
+      document.getElementById('aIco').textContent = emjs[tipo];
+      document.getElementById('aMsg').textContent  = msgs[tipo];
+      document.getElementById('alertaOv').classList.add('show');
+      src(cid, grc(cid).filter(r=>r.id!==id));
+      renderPanel(gc().find(c=>c.id===cid));
+    }, diff);
+    timers.push({id, t});
+    document.getElementById('recFecha-'+cid).value='';
+    renderPanel(gc().find(c=>c.id===cid));
+    toast('⏰ Alarma programada — '+emjs[tipo]);
+  }
+}
+
+function cancelarRec(cid, id) {
+  const entry = timers.find(x=>x.id===id);
+  if (entry) { entry.interval ? clearInterval(entry.t) : clearTimeout(entry.t); timers=timers.filter(x=>x.id!==id); }
+  src(cid, grc(cid).filter(r=>r.id!==id));
+  renderPanel(gc().find(c=>c.id===cid));
+  toast('Recordatorio cancelado');
+}
+
+/* ════════════════════════════════════
+   IMPRIMIR
+════════════════════════════════════ */
+function imprimir(cid) {
+  const c   = gc().find(x => x.id === cid);
+  const arr = gr(cid);
+  const fecha = new Date().toLocaleDateString('es-MX', {dateStyle:'long'});
+
+  // Estilos de impresión globales
+  if (!document.getElementById('print-style')) {
+    const s = document.createElement('style');
+    s.id = 'print-style';
+    s.textContent = `
+      @media print {
+        body > *:not(#print-overlay) { display:none !important; }
+        #print-overlay { position:static !important; overflow:visible !important; }
+        #print-barra   { display:none !important; }
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Quitar overlay previo
+  const viejo = document.getElementById('print-overlay');
+  if (viejo) viejo.remove();
+
+  // ── Overlay ──
+  const overlay = document.createElement('div');
+  overlay.id = 'print-overlay';
+  overlay.style.position   = 'fixed';
+  overlay.style.top        = '0';
+  overlay.style.left       = '0';
+  overlay.style.right      = '0';
+  overlay.style.bottom     = '0';
+  overlay.style.background = '#ffffff';
+  overlay.style.zIndex     = '99999';
+  overlay.style.overflowY  = 'auto';
+  overlay.style.fontFamily = 'Arial, sans-serif';
+  overlay.style.color      = '#222222';
+  overlay.style.fontSize   = '13px';
+
+  // ── Barra ──
+  const barra = document.createElement('div');
+  barra.id = 'print-barra';
+  barra.style.background = '#1b4332';
+  barra.style.padding    = '12px 18px';
+  barra.style.display    = 'flex';
+  barra.style.gap        = '10px';
+  barra.style.position   = 'sticky';
+  barra.style.top        = '0';
+  barra.style.zIndex     = '2';
+
+  const btnReg = document.createElement('button');
+  btnReg.textContent          = '← Regresar';
+  btnReg.style.padding        = '9px 20px';
+  btnReg.style.border         = 'none';
+  btnReg.style.borderRadius   = '8px';
+  btnReg.style.fontSize       = '14px';
+  btnReg.style.fontWeight     = '700';
+  btnReg.style.cursor         = 'pointer';
+  btnReg.style.background     = '#ffffff';
+  btnReg.style.color          = '#1b4332';
+  btnReg.addEventListener('click', function() {
+    document.getElementById('print-overlay').remove();
+  });
+
+  const btnImp = document.createElement('button');
+  btnImp.textContent        = '🖨️ Imprimir';
+  btnImp.style.padding      = '9px 20px';
+  btnImp.style.border       = 'none';
+  btnImp.style.borderRadius = '8px';
+  btnImp.style.fontSize     = '14px';
+  btnImp.style.fontWeight   = '700';
+  btnImp.style.cursor       = 'pointer';
+  btnImp.style.background   = '#52b788';
+  btnImp.style.color        = '#ffffff';
+  btnImp.addEventListener('click', function() { window.print(); });
+
+  barra.appendChild(btnReg);
+  barra.appendChild(btnImp);
+  overlay.appendChild(barra);
+
+  // ── Cuerpo ──
+  const cuerpo = document.createElement('div');
+  cuerpo.style.padding = '24px 20px';
+
+  const titulo = document.createElement('h1');
+  titulo.textContent       = c.emoji + ' ' + c.nombre + ' — Historial de registros';
+  titulo.style.fontSize    = '19px';
+  titulo.style.color       = '#1b4332';
+  titulo.style.marginBottom = '4px';
+  titulo.style.fontFamily  = 'Arial, sans-serif';
+
+  const sub = document.createElement('p');
+  sub.textContent        = 'Generado el ' + fecha;
+  sub.style.fontSize     = '12px';
+  sub.style.color        = '#888888';
+  sub.style.marginBottom = '18px';
+
+  cuerpo.appendChild(titulo);
+  cuerpo.appendChild(sub);
+
+  // ── Tabla ──
+  const wrap = document.createElement('div');
+  wrap.style.overflowX = 'auto';
+
+  const tabla = document.createElement('table');
+  tabla.style.width           = '100%';
+  tabla.style.borderCollapse  = 'collapse';
+  tabla.style.fontSize        = '12px';
+  tabla.style.minWidth        = '620px';
+
+  // Encabezado
+  const thead  = document.createElement('thead');
+  const trHead = document.createElement('tr');
+  trHead.style.background = '#1b4332';
+  trHead.style.color      = '#ffffff';
+  ['#','Etapa','Fecha','Estado','°C','💧','🌿','Plaga','Foto','Observaciones'].forEach(col => {
+    const th = document.createElement('th');
+    th.textContent       = col;
+    th.style.padding     = '8px 7px';
+    th.style.border      = '1px solid #2d6a4f';
+    th.style.textAlign   = 'center';
+    th.style.fontWeight  = '700';
+    th.style.color       = '#ffffff';
+    th.style.background  = '#1b4332';
+    trHead.appendChild(th);
+  });
+  thead.appendChild(trHead);
+  tabla.appendChild(thead);
+
+  // Filas
+  const tbody = document.createElement('tbody');
+  if (!arr.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan     = 10;
+    td.textContent = 'Sin registros';
+    td.style.padding    = '20px';
+    td.style.color      = '#aaaaaa';
+    td.style.fontStyle  = 'italic';
+    td.style.textAlign  = 'center';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    arr.forEach(d => {
+      const tr = document.createElement('tr');
+      tr.style.background = d.estado === 'Hecho' ? '#e8f5e9' : '#fffde7';
+
+      const vals = [
+        { t: String(d.id) },
+        { t: d.etapa, bold: true },
+        { t: d.fecha },
+        { t: d.estado === 'Hecho' ? '✔ Hecho' : '⏳ Pend.' },
+        { t: (d.temp || '—') + '°C' },
+        { t: d.riego ? '✔' : '—' },
+        { t: d.abono ? '✔' : '—' },
+        { t: d.plaga || '—' },
+        { foto: d.foto || null },
+        { t: d.obs || '—', left: true }
+      ];
+
+      vals.forEach(v => {
+        const td = document.createElement('td');
+        td.style.border         = '1px solid #cccccc';
+        td.style.padding        = '6px 7px';
+        td.style.textAlign      = v.left ? 'left' : 'center';
+        td.style.color          = '#222222';
+        td.style.verticalAlign  = 'middle';
+        td.style.fontWeight     = v.bold ? '700' : '400';
+        if (v.foto) {
+          const img = document.createElement('img');
+          img.src              = v.foto;
+          img.style.width      = '48px';
+          img.style.height     = '48px';
+          img.style.objectFit  = 'cover';
+          img.style.borderRadius = '5px';
+          img.style.display    = 'block';
+          img.style.margin     = 'auto';
+          td.appendChild(img);
+        } else {
+          td.textContent = v.t;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  tabla.appendChild(tbody);
+  wrap.appendChild(tabla);
+  cuerpo.appendChild(wrap);
+
+  const pie = document.createElement('p');
+  pie.textContent      = 'Control de Cultivos · ' + fecha;
+  pie.style.marginTop  = '18px';
+  pie.style.fontSize   = '11px';
+  pie.style.color      = '#bbbbbb';
+  pie.style.textAlign  = 'right';
+  pie.style.borderTop  = '1px solid #eeeeee';
+  pie.style.paddingTop = '8px';
+  cuerpo.appendChild(pie);
+
+  overlay.appendChild(cuerpo);
+  document.body.appendChild(overlay);
+}
+
+
+/* ════════════════════════════════════
+   EXPORTAR CSV
+════════════════════════════════════ */
+function exportarCSV(cid) {
+  const c=gc().find(x=>x.id===cid), arr=gr(cid);
+  const header = ['ID','Etapa','Fecha','Estado','Temperatura','Regó','Abonó','Plaga','Observaciones'];
+  const rows = arr.map(d=>[
+    d.id, d.etapa, d.fecha, d.estado,
+    d.temp||'', d.riego?'Sí':'No', d.abono?'Sí':'No',
+    (d.plaga||'').replace(/,/g,';'), (d.obs||'').replace(/,/g,';').replace(/\n/g,' ')
+  ]);
+  const csv = [header,...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`cultivo_${c.nombre}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('📊 CSV descargado — ábrelo en Excel');
+}
+
+/* ════════════════════════════════════
+   CÁMARA (getUserMedia)
+════════════════════════════════════ */
+let camaraStream = null;
+let camaraCidActivo = null;
+
+async function abrirCamara(cid) {
+  camaraCidActivo = cid;
+  const modal = document.getElementById('camaraModal');
+  const video = document.getElementById('camaraVideo');
+  const errEl = document.getElementById('camaraError');
+  errEl.style.display = 'none';
+  modal.classList.add('show');
+
+  // Detener stream anterior si existe
+  if (camaraStream) {
+    camaraStream.getTracks().forEach(t => t.stop());
+    camaraStream = null;
+  }
+
+  try {
+    // Pedir cámara trasera primero, si falla usar cualquiera
+    camaraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+    video.srcObject = camaraStream;
+  } catch(e) {
+    try {
+      // Fallback: cualquier cámara disponible
+      camaraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      video.srcObject = camaraStream;
+    } catch(e2) {
+      errEl.textContent = '⚠️ No se pudo acceder a la cámara. Verifica los permisos del navegador.';
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+function tomarFoto() {
+  const video  = document.getElementById('camaraVideo');
+  const canvas = document.getElementById('camaraCanvas');
+  if (!camaraStream || !video.videoWidth) return;
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  fotoData[camaraCidActivo] = dataUrl;
+
+  const img = document.getElementById('preview-' + camaraCidActivo);
+  if (img) { img.src = dataUrl; img.style.display = 'block'; }
+
+  cerrarCamara();
+  toast('📸 Foto tomada');
+}
+
+function cerrarCamara() {
+  if (camaraStream) {
+    camaraStream.getTracks().forEach(t => t.stop());
+    camaraStream = null;
+  }
+  document.getElementById('camaraModal').classList.remove('show');
+  document.getElementById('camaraVideo').srcObject = null;
+}
+
+/* ════════════════════════════════════
+   TOAST
+════════════════════════════════════ */
+function toast(msg, bg='#1b4332') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=bg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+renderApp();
+
+// ── Registrar Service Worker (PWA) ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('✅ Service Worker registrado'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+</script>
+</body>
+</html>

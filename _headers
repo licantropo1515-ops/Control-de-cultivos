@@ -1,0 +1,20 @@
+# _headers
+/*
+
+  # Evitar que otros sitios incrusten tu app
+  X-Frame-Options: DENY
+  
+  # Protección XSS básica
+  X-XSS-Protection: 1; mode=block
+  
+  # Evitar que navegadores antiguos adivinen tipos MIME
+  X-Content-Type-Options: nosniff
+  
+  # Obligar a usar HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  
+  # Controlar qué información se comparte
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Controlar permisos del navegador
+  Permissions-Policy: geolocation=(self), camera=(self), notifications=(self)
