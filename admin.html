@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - Control de Cultivos</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1b4332, #2d6a4f);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 25px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(5px);
+    }
+    h1 {
+      color: #1b4332;
+      font-size: 28px;
+      margin-bottom: 5px;
+      text-align: center;
+    }
+    .subtitulo {
+      text-align: center;
+      color: #5a705a;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+    .numero-grande {
+      font-size: 80px;
+      font-weight: 900;
+      color: #2d6a4f;
+      text-align: center;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      background: #d8f3dc;
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .info {
+      background: #e8f5e9;
+      border-radius: 15px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 4px solid #2d6a4f;
+    }
+    .info p {
+      margin: 8px 0;
+      color: #1a2e1a;
+    }
+    .info a {
+      color: #2d6a4f;
+      text-decoration: none;
+    }
+    .info a:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      background: #2d6a4f;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+    .btn-danger {
+      background: #c0392b;
+    }
+    .btn-cultivos {
+      background: #1565c0;
+    }
+    hr {
+      margin: 25px 0;
+      border-color: #d4e8d4;
+    }
+    .badge {
+      display: inline-block;
+      background: #2d6a4f;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div style="text-align: center;">
+      <span class="badge">🔐 ADMIN</span>
+    </div>
+    <h1>🌱 Control de Cultivos</h1>
+    <p class="subtitulo">Panel de administración — Solo para ti</p>
+    
+    <div class="numero-grande" id="visitas">---</div>
+    
+    <div class="info">
+      <p><strong>📅 Última actualización:</strong> <span id="fecha">-</span></p>
+      <p><strong>🔗 Link público:</strong> <a href="https://registro-cultivo-v1.netlify.app" target="_blank">registro-cultivo-v1.netlify.app</a></p>
+      <p><strong>📊 Estado:</strong> <span id="estado">En línea</span></p>
+    </div>
+    
+    <button class="btn" onclick="actualizarVisitas()">🔄 Actualizar datos</button>
+    <button class="btn btn-cultivos" onclick="window.location.href='index.html'">🌾 Ir a la app</button>
+    <button class="btn btn-danger" onclick="reiniciarContador()">⚠️ Reiniciar contador</button>
+    
+    <hr>
+    
+    <div class="info" style="background: #fef3c7;">
+      <p style="font-size: 13px;">💡 <strong>Información:</strong></p>
+      <p style="font-size: 12px;">• Cada visita a la app se cuenta automáticamente</p>
+      <p style="font-size: 12px;">• El contador solo se incrementa una vez por visita</p>
+      <p style="font-size: 12px;">• Los datos se guardan en tu navegador</p>
+      <p style="font-size: 12px;">• Si borras los datos del navegador, el contador se reinicia</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Obtener visitas guardadas
+  function obtenerVisitas() {
+    const visitas = localStorage.getItem('visitas_totales') || 0;
+    return parseInt(visitas);
+  }
+  
+  // Mostrar visitas en pantalla
+  function mostrarVisitas() {
+    const visitas = obtenerVisitas();
+    document.getElementById('visitas').textContent = visitas;
+    document.getElementById('fecha').textContent = new Date().toLocaleString('es-MX');
+    
+    // Cambiar color según cantidad
+    const numDiv = document.getElementById('visitas');
+    if (visitas === 0) numDiv.style.color = '#c0392b';
+    else if (visitas < 10) numDiv.style.color = '#e67e22';
+    else if (visitas < 50) numDiv.style.color = '#2d6a4f';
+    else numDiv.style.color = '#1b4332';
+  }
+  
+  // Actualizar manualmente
+  function actualizarVisitas() {
+    mostrarVisitas();
+    alert('✅ Datos actualizados\n\n📊 Total de visitas: ' + obtenerVisitas());
+  }
+  
+  // Reiniciar contador (solo admin)
+  function reiniciarContador() {
+    if (confirm('⚠️ ¿Estás SEGURO?\n\nEsta acción borrará TODAS las visitas registradas.\n\nEsta operación NO se puede deshacer.')) {
+      localStorage.setItem('visitas_totales', 0);
+      mostrarVisitas();
+      alert('✅ Contador reiniciado correctamente');
+    }
+  }
+  
+  // Al cargar la página
+  mostrarVisitas();
+  
+  // Protección opcional (descomenta para activar PIN)
+  // const PIN_CORRECTO = "1234";
+  // const pin = prompt("🔒 Panel de administración - Ingresa tu PIN:");
+  // if (pin !== PIN_CORRECTO) {
+  //   document.body.innerHTML = '<div style="text-align:center;padding:100px;background:#fff"><h1>🔒 Acceso denegado</h1><p>PIN incorrecto</p></div>';
+  // }
+</script>
+</body>
+</html>
