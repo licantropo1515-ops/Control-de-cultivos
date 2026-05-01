@@ -1231,6 +1231,15 @@ function toast(msg, bg='#1b4332') {
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
 }
 
+ // ========== CONTADOR DE VISITAS ==========
+(function contarVisita() {
+  let visitas = localStorage.getItem('visitas_totales') || 0;
+  visitas = parseInt(visitas) + 1;
+  localStorage.setItem('visitas_totales', visitas);
+  console.log('📊 Visita registrada #' + visitas);
+})();
+
+
 /* ════════════════════════════════════
    INIT
 ════════════════════════════════════ */
