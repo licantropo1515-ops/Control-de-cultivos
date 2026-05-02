@@ -1231,12 +1231,33 @@ function toast(msg, bg='#1b4332') {
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
 }
 
- // ========== CONTADOR DE VISITAS ==========
+ // ========== REGISTRAR UBICACIÓN DEL VISITANTE ==========
+async function registrarUbicacion() {
+  try {
+    const respuesta = await fetch('https://ipapi.co/json/');
+    const datos = await respuesta.json();
+    const ubicacion = `${datos.city}, ${datos.region}, ${datos.country_name}`;
+    const ip = datos.ip;
+    
+    let visitasDetalle = JSON.parse(localStorage.getItem('visitas_detalle') || '[]');
+    visitasDetalle.push({
+      fecha: new Date().toISOString(),
+      ubicacion: ubicacion,
+      ip: ip
+    });
+    if (visitasDetalle.length > 200) visitasDetalle = visitasDetalle.slice(-200);
+    localStorage.setItem('visitas_detalle', JSON.stringify(visitasDetalle));
+  } catch(e) {
+    console.log('Error obteniendo ubicación:', e);
+  }
+}
+
+// Modificar el contador de visitas
 (function contarVisita() {
   let visitas = localStorage.getItem('visitas_totales') || 0;
   visitas = parseInt(visitas) + 1;
   localStorage.setItem('visitas_totales', visitas);
-  console.log('📊 Visita registrada #' + visitas);
+  registrarUbicacion();  // ← Agregar esta línea
 })();
 
 
