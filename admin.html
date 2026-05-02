@@ -126,6 +126,7 @@
     
     <button class="btn" onclick="actualizarVisitas()">🔄 Actualizar datos</button>
     <button class="btn btn-cultivos" onclick="window.location.href='index.html'">🌾 Ir a la app</button>
+<button class="btn" onclick="verDetalleVisitas()" style="background: #e67e22;">📍 Ver ubicaciones</button>
     <button class="btn btn-danger" onclick="reiniciarContador()">⚠️ Reiniciar contador</button>
     
     <hr>
@@ -185,6 +186,23 @@
   if (pin !== PIN_CORRECTO) {
     document.body.innerHTML = '<div style="text-align:center;padding:100px;background:#fff"><h1>🔒 Acceso denegado</h1><p>PIN incorrecto</p></div>';
   }
+
+
+function verDetalleVisitas() {
+  const detalles = JSON.parse(localStorage.getItem('visitas_detalle') || '[]');
+  if (detalles.length === 0) {
+    alert('📭 No hay visitas registradas aún');
+    return;
+  }
+  
+  let mensaje = "📍 ÚLTIMAS VISITAS:\n\n";
+  detalles.slice(-20).reverse().forEach((v, i) => {
+    const fecha = new Date(v.fecha).toLocaleString('es-MX');
+    mensaje += `${i+1}. ${fecha}\n   📍 ${v.ubicacion}\n   🌐 IP: ${v.ip}\n\n`;
+  });
+  
+  alert(mensaje);
+}
 </script>
 </body>
 </html>
